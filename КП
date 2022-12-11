@@ -1,0 +1,181 @@
+#define _CRT_SECURE_NO_WARNINGS
+#define MEMBERS 4
+#include <stdlib.h>
+#include <math.h>
+#include <stdio.h>
+#include <locale.h>
+#include <string.h>
+#include <windows.h>
+
+struct mbr {
+	char name[8];
+	int ride[7];
+	int result=0;
+	int place=0;
+	int flag[7];
+	int DNQ=0;
+};
+struct mbr membr[MEMBERS];
+
+void put_table() {
+	printf("Яхта    | 1 | 2 | 3 | 4 | 5 | 6 | 7 | Очки | Место\n");
+	for (int i = 0; i < MEMBERS; i++) {
+		printf("%6s    ", membr[i].name);
+		for (int j = 0; j < 7; j++) {
+			if (membr[i].flag[j] == 1) {
+				printf("(%d)  ", membr[i].ride[j]);
+			}
+			if (membr[i].flag[j] == 0) {
+				if (membr[i].flag[j + 1] == 1) printf("%-3d", membr[i].ride[j]);
+				if (membr[i].flag[j + 1] == 0) printf("%-4d", membr[i].ride[j]);
+			}
+		}
+		printf("%3d", membr[i].result);
+		printf("%7d\n", membr[i].place);
+	}
+	printf("\n\n");
+}
+void sort_bubble(int size) {
+	struct mbr d;
+	int M = size;
+	for (int i = 0; i < M; i++) {
+		for (int j = 0; j < M - 1; j++) {
+			if (membr[j].result > membr[j + 1].result) {
+				d = membr[j];
+				membr[j] = membr[j + 1];
+				membr[j + 1] = d;
+			}
+		}
+	}
+}
+
+void count_result(int j) {
+	for (int i = 0; i < 7; i++) {
+		if (membr[j].flag[i] == 1) {
+			membr[j].ride[i] = membr[j].ride[i] + 1;
+		}
+		membr[j].result += membr[j].ride[i];
+	}
+}
+void count_place() {
+	int poz[MEMBERS];
+	int arr[MEMBERS];
+	int max;
+	int Mi = 0;
+	for (int i = MEMBERS-1; i > -1; i--) {
+		arr[i] = MEMBERS-i;						/* заполняю от числа участников до 0*/
+	}
+	for (int i = 0; i < MEMBERS; i++) {
+		poz[i] = membr[i].result;				/*заполняю результатами*/
+	}
+	for (int i = 0; i < MEMBERS; i++) {
+		max = 0;
+		for (int j = 0; j < MEMBERS; j++) {		/* нахожу максимальное значение и индекс*/
+			if (poz[j] > max) {
+				max = poz[j];
+				Mi = j;
+			}
+		}
+		for (int j = 0; j < MEMBERS; j++) {
+			if (membr[j].result == poz[Mi]) {
+				membr[j].place = arr[i];
+				poz[Mi] = 0;
+				break;
+			}
+		}
+
+	}
+
+}
+void put_for(int fr, int to) {
+	for (int i = 0; i < MEMBERS; i++) {
+		if (membr[i].result >= fr && membr[i].result <= to) printf("%s  %d\n",membr[i].name,membr[i].result);
+	}
+}
+
+void main() {
+	setlocale(LC_ALL, "ru_RU");
+	int flag = 0;
+	int ptr;
+	int fr,to;
+	char txt[5] = ".txt";
+	FILE* inf;
+	inf = fopen("table.txt", "r");
+	if (inf == NULL) printf("error\n");
+	for (int j = 0; j < MEMBERS; j++) {
+		fscanf(inf, "%s%d%d%d%d%d%d%d", &membr[j].name, &membr[j].ride[0], &membr[j].ride[1], &membr[j].ride[2], &membr[j].ride[3], &membr[j].ride[4], &membr[j].ride[5], &membr[j].ride[6]);
+		for (int k = 0; k < 7; k++) {
+			if (membr[j].ride[k] > 7) {
+				membr[j].ride[k] = membr[j].ride[k] / 10;
+				membr[j].flag[k] = 1;
+			}
+		}
+		count_result(j);
+	}
+	count_place();
+	while (flag == 0) {
+		printf("Вывести таблицу -> 1\nОтсортировать -> 2\nВывести команды с диапазоном очков -> 3\nЗаписать таблицу в файл -> 4\nЗавершить -> 0\n");
+		scanf("%d", &ptr);
+		switch (ptr) {
+		case 1: {
+			printf("\033[0d\033[2J");
+			put_table();
+			break;
+		}
+		case 2: {
+			printf("\n");
+			sort_bubble(MEMBERS);
+			printf("\033[0d\033[2J");
+			printf("Табица отсторирована\n\n");
+			break;
+		}
+		case 3: {
+			printf("Введите меньшее значение диапазона\n");
+			scanf("%d", &fr);
+			printf("Введите большее значение диапазона\n");
+			scanf("%d", &to);
+			put_for(fr, to);
+			break;
+		}
+		case 4: {
+			FILE* sec;
+			char fnamesec[60];
+			puts("Введите имя файла\n");
+			scanf("%s", &fnamesec);
+			strcat(fnamesec, txt);
+			sec = fopen(fnamesec, "w");
+			if (sec == NULL) {
+				printf("ERROR\n");
+				break;
+			}
+			for (int i = 0; i < MEMBERS; i++) {
+				fprintf(sec, "%s ", membr[i].name);
+				for (int j = 0; j < 7; j++) {
+					if (membr[i].flag[j] == 1) {
+						fprintf(sec, "%d ", membr[i].ride[j]);
+					}
+					if (membr[i].flag[j] == 0) {
+						if (membr[i].flag[j + 1] == 1) fprintf(sec, "%d0 ", membr[i].ride[j]);
+						if (membr[i].flag[j + 1] == 0) fprintf(sec, "%d ", membr[i].ride[j]);
+					}
+				}
+				fprintf(sec, "%d ", membr[i].result);
+				fprintf(sec, "%d\n", membr[i].place);
+			}
+			printf("\033[0d\033[2J");
+			printf("Успешно записано\n\n");
+			if (sec != NULL) fclose(sec);
+			break;
+		}
+		case 0: {
+			flag = 1;
+			break;
+		}
+		default: {
+			printf("Введен неизвестный символ\n");
+		}
+		}
+
+		if (inf != NULL) fclose(inf);
+	}
+}
